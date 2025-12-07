@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.Mapper;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -39,8 +40,9 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public ProjectResponse getProjectById(Long id, Long userId) {
-       return   null;
-
+        User owner = userRepository.findById(userId).orElseThrow(()-> new RuntimeException("user not found"));
+        Project project = projectRepository.findByIdAndOwner_IdAndDeletedAtIsNull(userId, id).orElseThrow(()-> new RuntimeException("project not found"));;
+        return projectMapper.toProjectResponse(project);
     }
 
     @Override
@@ -59,12 +61,19 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
     @Override
-    public ProjectResponse updateProject(Long id, ProjectRequest project, Long userId) {
-        return null;
+    public ProjectResponse updateProject(Long id, ProjectRequest projectRequest, Long userId) {
+        Project project = projectRepository.findByIdAndOwner_IdAndDeletedAtIsNull(id, userId).orElseThrow(()-> new RuntimeException("project not found"));
+        project.setName(projectRequest.name());
+        projectRepository.save(project);
+        return projectMapper.toProjectResponse(project);
     }
 
     @Override
     public void softDelete(Long id, Long userId) {
-
+    //here we have to set the DeletedAt as Instant.now()
+        Project project = projectRepository.findByIdAndOwner_IdAndDeletedAtIsNull(id, userId).orElseThrow(()-> new RuntimeException("project not found"));
+        log.info("project {} deleted", project.getId());
+        project.setDeletedAt(Instant.now());
+        projectRepository.save(project);
     }
 }
